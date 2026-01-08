@@ -10,18 +10,6 @@ import (
 	"github.com/charmbracelet/lipgloss"
 )
 
-// Icons for file types
-const (
-	iconFolder       = "📁"
-	iconFolderOpen   = "📂"
-	iconFile         = "📄"
-	iconGo           = "🐹"
-	iconMarkdown     = "📝"
-	iconJSON         = "📋"
-	iconImage        = "🖼️"
-	iconGit          = "🔀"
-)
-
 // FileEntry represents a file or directory in the tree
 type FileEntry struct {
 	Name     string
@@ -181,7 +169,6 @@ func (n *NavPane) loadDir(dir string, depth int) {
 
 func (n *NavPane) renderEntry(entry FileEntry, selected bool) string {
 	indent := strings.Repeat("  ", entry.Depth)
-	icon := n.iconFor(entry)
 
 	style := lipgloss.NewStyle()
 	if selected {
@@ -198,7 +185,7 @@ func (n *NavPane) renderEntry(entry FileEntry, selected bool) string {
 		name += "/"
 	}
 
-	line := indent + icon + " " + name
+	line := indent + name
 
 	// Pad to width for selection highlight
 	if selected && n.width > 0 {
@@ -209,32 +196,6 @@ func (n *NavPane) renderEntry(entry FileEntry, selected bool) string {
 	}
 
 	return style.Render(line)
-}
-
-func (n *NavPane) iconFor(entry FileEntry) string {
-	if entry.IsDir {
-		if entry.Expanded {
-			return iconFolderOpen
-		}
-		if entry.Name == ".git" {
-			return iconGit
-		}
-		return iconFolder
-	}
-
-	ext := strings.ToLower(filepath.Ext(entry.Name))
-	switch ext {
-	case ".go":
-		return iconGo
-	case ".md", ".markdown":
-		return iconMarkdown
-	case ".json":
-		return iconJSON
-	case ".png", ".jpg", ".jpeg", ".gif", ".svg", ".webp":
-		return iconImage
-	default:
-		return iconFile
-	}
 }
 
 func (n *NavPane) moveCursor(delta int) {
