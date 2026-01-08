@@ -67,7 +67,7 @@ func (n *NavPane) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		case "enter", "l", "right":
 			n.toggleOrOpen()
 		case "h", "backspace", "left":
-			n.goToParent()
+			n.collapseOrParent()
 		}
 	}
 
@@ -257,6 +257,20 @@ func (n *NavPane) toggleOrOpen() {
 		}
 	}
 	// TODO: For files, emit message to open in viewer
+}
+
+func (n *NavPane) collapseOrParent() {
+	if n.cursor >= 0 && n.cursor < len(n.entries) {
+		entry := n.entries[n.cursor]
+		// If on expanded directory, collapse it
+		if entry.IsDir && entry.Expanded {
+			n.expanded[entry.Path] = false
+			n.loadEntries()
+			return
+		}
+	}
+	// Otherwise go to parent
+	n.goToParent()
 }
 
 func (n *NavPane) goToParent() {
