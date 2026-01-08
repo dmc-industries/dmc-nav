@@ -184,12 +184,22 @@ func (n *NavPane) renderEntry(entry FileEntry, selected bool) string {
 		style = style.Foreground(lipgloss.Color("12"))
 	}
 
+	// Expando indicator for directories
+	expando := "  "
+	if entry.IsDir {
+		if entry.Expanded {
+			expando = "▼ "
+		} else {
+			expando = "▶ "
+		}
+	}
+
 	name := entry.Name
 	if entry.IsDir {
 		name += "/"
 	}
 
-	line := indent + name
+	line := indent + expando + name
 
 	// Pad to width for selection highlight
 	if selected && n.width > 0 {
