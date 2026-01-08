@@ -25,16 +25,18 @@ type NavPane struct {
 	height  int
 	focused bool
 
-	root    string        // root directory path
-	entries []FileEntry   // flattened visible entries
-	cursor  int           // current selection index
-	offset  int           // scroll offset for viewport
+	root     string          // root directory path
+	entries  []FileEntry     // flattened visible entries
+	expanded map[string]bool // tracks which directories are expanded
+	cursor   int             // current selection index
+	offset   int             // scroll offset for viewport
 }
 
 func NewNavPane(root string) *NavPane {
 	n := &NavPane{
-		root:   root,
-		cursor: 0,
+		root:     root,
+		expanded: make(map[string]bool),
+		cursor:   0,
 	}
 	n.loadEntries()
 	return n
@@ -152,16 +154,18 @@ func (n *NavPane) loadDir(dir string, depth int) {
 		}
 
 		path := filepath.Join(dir, name)
+		isExpanded := n.expanded[path]
 		entry := FileEntry{
-			Name:  name,
-			Path:  path,
-			IsDir: f.IsDir(),
-			Depth: depth,
+			Name:     name,
+			Path:     path,
+			IsDir:    f.IsDir(),
+			Expanded: isExpanded,
+			Depth:    depth,
 		}
 		n.entries = append(n.entries, entry)
 
 		// If directory is expanded, load its contents
-		if entry.IsDir && entry.Expanded {
+		if entry.IsDir && isExpanded {
 			n.loadDir(path, depth+1)
 		}
 	}
@@ -230,9 +234,9 @@ func (n *NavPane) toggleOrOpen() {
 		return
 	}
 
-	entry := &n.entries[n.cursor]
+	entry := n.entries[n.cursor]
 	if entry.IsDir {
-		entry.Expanded = !entry.Expanded
+		n.expanded[entry.Path] = !n.expanded[entry.Path]
 		n.loadEntries()
 		// Try to keep cursor on same entry after reload
 		for i, e := range n.entries {
