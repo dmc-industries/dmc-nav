@@ -64,9 +64,9 @@ func (n *NavPane) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		case "G":
 			n.cursor = len(n.entries) - 1
 			n.adjustOffset()
-		case "enter", "l":
+		case "enter", "l", "right":
 			n.toggleOrOpen()
-		case "h", "backspace":
+		case "h", "backspace", "left":
 			n.goToParent()
 		}
 	}
