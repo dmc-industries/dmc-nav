@@ -1,6 +1,8 @@
 package main
 
 import (
+	"os"
+
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
 )
@@ -47,10 +49,14 @@ type App struct {
 const navPaneRatio = 0.25
 
 func NewApp() *App {
+	cwd, _ := os.Getwd()
+	nav := NewNavPane(cwd)
+	nav.SetFocused(true)
+
 	return &App{
 		focus:  FocusNav,
 		mode:   ModeNav,
-		nav:    NewPlaceholderPane("nav"),
+		nav:    nav,
 		viewer: NewPlaceholderPane("viewer"),
 	}
 }
