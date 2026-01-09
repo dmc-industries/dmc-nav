@@ -109,6 +109,11 @@ func (n *NavPane) View() string {
 		lines = append(lines, line)
 	}
 
+	// Pad to full height to pin content to top
+	for len(lines) < n.height {
+		lines = append(lines, "")
+	}
+
 	return strings.Join(lines, "\n")
 }
 

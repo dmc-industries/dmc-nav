@@ -178,7 +178,14 @@ func (t *TextViewer) View() string {
 		Foreground(lipgloss.Color("12")).
 		Render(filepath.Base(t.path))
 
-	return header + "\n" + strings.Join(visible, "\n")
+	lines := append([]string{header}, visible...)
+
+	// Pad to full height to pin content to top
+	for len(lines) < t.height {
+		lines = append(lines, "")
+	}
+
+	return strings.Join(lines, "\n")
 }
 
 func (t *TextViewer) SetSize(width, height int) {
