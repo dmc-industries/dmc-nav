@@ -33,9 +33,10 @@ type ViewerRouter struct {
 }
 
 func NewViewerRouter() *ViewerRouter {
+	md := NewMarkdownViewer()
 	text := NewTextViewer()
 	return &ViewerRouter{
-		viewers: []Viewer{text},
+		viewers: []Viewer{md, text}, // order matters: specific viewers before fallback
 		current: text,
 	}
 }
