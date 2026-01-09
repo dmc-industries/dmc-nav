@@ -10,6 +10,11 @@ import (
 	"github.com/charmbracelet/lipgloss"
 )
 
+// FileSelectedMsg is sent when a file is selected in the nav pane
+type FileSelectedMsg struct {
+	Path string
+}
+
 // FileEntry represents a file or directory in the tree
 type FileEntry struct {
 	Name     string
@@ -65,7 +70,10 @@ func (n *NavPane) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			n.cursor = len(n.entries) - 1
 			n.adjustOffset()
 		case "enter", "l", "right":
-			n.toggleOrOpen()
+			cmd := n.toggleOrOpen()
+			if cmd != nil {
+				return n, cmd
+			}
 		case "h", "backspace", "left":
 			n.collapseOrParent()
 		}
@@ -239,9 +247,9 @@ func (n *NavPane) adjustOffset() {
 	}
 }
 
-func (n *NavPane) toggleOrOpen() {
+func (n *NavPane) toggleOrOpen() tea.Cmd {
 	if n.cursor < 0 || n.cursor >= len(n.entries) {
-		return
+		return nil
 	}
 
 	entry := n.entries[n.cursor]
@@ -255,8 +263,12 @@ func (n *NavPane) toggleOrOpen() {
 				break
 			}
 		}
+		return nil
 	}
-	// TODO: For files, emit message to open in viewer
+	// File selected - emit message to open in viewer
+	return func() tea.Msg {
+		return FileSelectedMsg{Path: entry.Path}
+	}
 }
 
 func (n *NavPane) collapseOrParent() {

@@ -42,7 +42,7 @@ type App struct {
 	mode  Mode
 
 	nav    Pane
-	viewer Pane
+	viewer *ViewerRouter
 }
 
 // NavPane ratio (left side width percentage)
@@ -57,7 +57,7 @@ func NewApp() *App {
 		focus:  FocusNav,
 		mode:   ModeNav,
 		nav:    nav,
-		viewer: NewPlaceholderPane("viewer"),
+		viewer: NewViewerRouter(),
 	}
 }
 
@@ -90,6 +90,20 @@ func (a *App) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		a.height = msg.Height
 		a.ready = true
 		a.updatePaneSizes()
+
+	case FileSelectedMsg:
+		// Open file in viewer
+		cmd := a.viewer.OpenFile(msg.Path)
+		if cmd != nil {
+			cmds = append(cmds, cmd)
+		}
+
+	case FileLoadedMsg:
+		// Forward to viewer
+		_, cmd := a.viewer.Update(msg)
+		if cmd != nil {
+			cmds = append(cmds, cmd)
+		}
 	}
 
 	return a, tea.Batch(cmds...)
@@ -145,7 +159,7 @@ func (a *App) updateFocusedPane(msg tea.Msg) tea.Cmd {
 	} else {
 		var m tea.Model
 		m, cmd = a.viewer.Update(msg)
-		a.viewer = m.(Pane)
+		a.viewer = m.(*ViewerRouter)
 	}
 	return cmd
 }
@@ -156,49 +170,4 @@ func (a *App) updatePaneSizes() {
 
 	a.nav.SetSize(navWidth, a.height)
 	a.viewer.SetSize(viewerWidth, a.height)
-}
-
-// PlaceholderPane is a temporary pane for development
-type PlaceholderPane struct {
-	name    string
-	width   int
-	height  int
-	focused bool
-}
-
-func NewPlaceholderPane(name string) *PlaceholderPane {
-	return &PlaceholderPane{name: name}
-}
-
-func (p *PlaceholderPane) Init() tea.Cmd { return nil }
-
-func (p *PlaceholderPane) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
-	return p, nil
-}
-
-func (p *PlaceholderPane) View() string {
-	style := lipgloss.NewStyle().
-		Width(p.width).
-		Height(p.height).
-		Align(lipgloss.Center, lipgloss.Center)
-
-	focusIndicator := ""
-	if p.focused {
-		focusIndicator = " [focused]"
-	}
-
-	return style.Render(p.name + focusIndicator)
-}
-
-func (p *PlaceholderPane) SetSize(width, height int) {
-	p.width = width
-	p.height = height
-}
-
-func (p *PlaceholderPane) Focused() bool {
-	return p.focused
-}
-
-func (p *PlaceholderPane) SetFocused(focused bool) {
-	p.focused = focused
 }
