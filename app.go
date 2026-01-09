@@ -2,6 +2,7 @@ package main
 
 import (
 	"os"
+	"path/filepath"
 
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
@@ -50,7 +51,10 @@ const navPaneRatio = 0.25
 
 func NewApp() *App {
 	cwd, _ := os.Getwd()
-	nav := NewNavPane(cwd)
+	parent := filepath.Dir(cwd)
+
+	nav := NewNavPane(parent)
+	nav.ExpandToPath(cwd)
 	nav.SetFocused(true)
 
 	return &App{

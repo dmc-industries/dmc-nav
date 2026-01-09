@@ -133,6 +133,52 @@ func (n *NavPane) SelectedPath() string {
 	return ""
 }
 
+// ExpandToPath expands all directories along the path from root to target
+func (n *NavPane) ExpandToPath(target string) {
+	// Get relative path from root to target
+	rel, err := filepath.Rel(n.root, target)
+	if err != nil || strings.HasPrefix(rel, "..") {
+		return // target is not under root
+	}
+
+	// Expand each directory along the path
+	current := n.root
+	parts := strings.Split(rel, string(filepath.Separator))
+	for _, part := range parts {
+		if part == "" || part == "." {
+			continue
+		}
+		current = filepath.Join(current, part)
+		info, err := os.Stat(current)
+		if err != nil {
+			break
+		}
+		if info.IsDir() {
+			n.expanded[current] = true
+		}
+	}
+
+	// Reload entries with new expanded state
+	n.loadEntries()
+
+	// Position cursor on target (or nearest parent if target not found)
+	for i, e := range n.entries {
+		if e.Path == target {
+			n.cursor = i
+			n.adjustOffset()
+			return
+		}
+	}
+	// If exact target not found, try to find closest parent
+	for i := len(n.entries) - 1; i >= 0; i-- {
+		if strings.HasPrefix(target, n.entries[i].Path) {
+			n.cursor = i
+			n.adjustOffset()
+			return
+		}
+	}
+}
+
 func (n *NavPane) loadEntries() {
 	n.entries = nil
 	n.loadDir(n.root, 0)
