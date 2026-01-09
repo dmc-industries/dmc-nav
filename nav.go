@@ -138,6 +138,11 @@ func (n *NavPane) SelectedPath() string {
 	return ""
 }
 
+// PinTop scrolls the view to show root at top
+func (n *NavPane) PinTop() {
+	n.offset = 0
+}
+
 // ExpandToPath expands all directories along the path from root to target
 func (n *NavPane) ExpandToPath(target string) {
 	// Get relative path from root to target

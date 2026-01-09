@@ -51,11 +51,11 @@ const navPaneRatio = 0.25
 
 func NewApp() *App {
 	cwd, _ := os.Getwd()
-	home, _ := os.UserHomeDir()
-	root := filepath.Dir(home) // /Users on macOS, /home on Linux
+	cwd, _ = filepath.EvalSymlinks(cwd) // resolve to real path
 
-	nav := NewNavPane(root)
+	nav := NewNavPane("/")
 	nav.ExpandToPath(cwd)
+	nav.PinTop() // keep root visible
 	nav.SetFocused(true)
 
 	return &App{
