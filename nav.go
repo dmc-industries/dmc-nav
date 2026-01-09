@@ -87,7 +87,7 @@ func (n *NavPane) View() string {
 		Bold(true).
 		Foreground(lipgloss.Color("12")).
 		Render(filepath.Base(n.root))
-	lines = append(lines, header, "")
+	lines = append(lines, header)
 
 	// File entries
 	end := n.offset + visibleHeight
