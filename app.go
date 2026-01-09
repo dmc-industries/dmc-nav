@@ -123,12 +123,14 @@ func (a *App) View() string {
 	navStyle := lipgloss.NewStyle().
 		Width(navWidth).
 		Height(a.height).
+		AlignVertical(lipgloss.Top).
 		BorderStyle(lipgloss.NormalBorder()).
 		BorderRight(true)
 
 	viewerStyle := lipgloss.NewStyle().
 		Width(viewerWidth).
-		Height(a.height)
+		Height(a.height).
+		AlignVertical(lipgloss.Top)
 
 	if a.focus == FocusNav {
 		navStyle = navStyle.BorderForeground(lipgloss.Color("62"))
