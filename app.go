@@ -2,6 +2,7 @@ package main
 
 import (
 	"os"
+	"path/filepath"
 
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
@@ -51,8 +52,9 @@ const navPaneRatio = 0.25
 func NewApp() *App {
 	cwd, _ := os.Getwd()
 	home, _ := os.UserHomeDir()
+	root := filepath.Dir(home) // /Users on macOS, /home on Linux
 
-	nav := NewNavPane(home)
+	nav := NewNavPane(root)
 	nav.ExpandToPath(cwd)
 	nav.SetFocused(true)
 
