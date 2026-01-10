@@ -42,8 +42,10 @@ type App struct {
 	focus Focus
 	mode  Mode
 
-	nav    Pane
-	viewer *ViewerRouter
+	nav        Pane
+	viewer     *ViewerRouter
+	editor     *Editor
+	editPath   string // path being edited
 }
 
 // NavPane ratio (left side width percentage)
@@ -63,6 +65,7 @@ func NewApp() *App {
 		mode:   ModeNav,
 		nav:    nav,
 		viewer: NewViewerRouter(),
+		editor: NewEditor(),
 	}
 }
 
@@ -75,6 +78,21 @@ func (a *App) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 	switch msg := msg.(type) {
 	case tea.KeyMsg:
+		// In editor mode, only editor handles keys (except ctrl+c for emergency exit)
+		if a.mode == ModeEditor {
+			if msg.String() == "ctrl+c" {
+				return a, tea.Quit
+			}
+			var m tea.Model
+			var cmd tea.Cmd
+			m, cmd = a.editor.Update(msg)
+			a.editor = m.(*Editor)
+			if cmd != nil {
+				cmds = append(cmds, cmd)
+			}
+			return a, tea.Batch(cmds...)
+		}
+
 		switch msg.String() {
 		case "q", "ctrl+c":
 			return a, tea.Quit
@@ -82,6 +100,20 @@ func (a *App) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		case "tab":
 			a.cycleFocus()
 			return a, nil
+
+		case "e":
+			// Open editor for current file (if viewing a text file)
+			if a.focus == FocusViewer && a.editPath != "" && isTextFile(a.editPath) {
+				a.mode = ModeEditor
+				a.editor.SetSize(a.width-int(float64(a.width)*navPaneRatio)-1, a.height)
+				a.editor.SetFocused(true)
+				a.viewer.SetFocused(false)
+				cmd := a.editor.Open(a.editPath)
+				if cmd != nil {
+					cmds = append(cmds, cmd)
+				}
+				return a, tea.Batch(cmds...)
+			}
 		}
 
 		// Forward key events to focused pane
@@ -97,6 +129,8 @@ func (a *App) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		a.updatePaneSizes()
 
 	case FileSelectedMsg:
+		// Track path for potential editing
+		a.editPath = msg.Path
 		// Open file in viewer
 		cmd := a.viewer.OpenFile(msg.Path)
 		if cmd != nil {
@@ -116,6 +150,41 @@ func (a *App) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		if cmd != nil {
 			cmds = append(cmds, cmd)
 		}
+
+	case JSONLoadedMsg:
+		// Forward to viewer
+		_, cmd := a.viewer.Update(msg)
+		if cmd != nil {
+			cmds = append(cmds, cmd)
+		}
+
+	case EditorOpenMsg:
+		// Forward to editor
+		_, cmd := a.editor.Update(msg)
+		if cmd != nil {
+			cmds = append(cmds, cmd)
+		}
+
+	case EditorSavedMsg:
+		// Return to viewer mode and refresh
+		a.mode = ModeViewer
+		a.editor.SetFocused(false)
+		a.viewer.SetFocused(true)
+		a.focus = FocusViewer
+		// Reload file in viewer to show changes
+		if msg.Err == nil {
+			cmd := a.viewer.OpenFile(msg.Path)
+			if cmd != nil {
+				cmds = append(cmds, cmd)
+			}
+		}
+
+	case EditorCancelledMsg:
+		// Return to viewer mode without saving
+		a.mode = ModeViewer
+		a.editor.SetFocused(false)
+		a.viewer.SetFocused(true)
+		a.focus = FocusViewer
 	}
 
 	return a, tea.Batch(cmds...)
@@ -127,7 +196,7 @@ func (a *App) View() string {
 	}
 
 	navWidth := int(float64(a.width) * navPaneRatio)
-	viewerWidth := a.width - navWidth - 1 // -1 for border
+	rightWidth := a.width - navWidth - 1 // -1 for border
 
 	navStyle := lipgloss.NewStyle().
 		Width(navWidth).
@@ -136,21 +205,29 @@ func (a *App) View() string {
 		BorderStyle(lipgloss.NormalBorder()).
 		BorderRight(true)
 
-	viewerStyle := lipgloss.NewStyle().
-		Width(viewerWidth).
+	rightStyle := lipgloss.NewStyle().
+		Width(rightWidth).
 		Height(a.height).
 		AlignVertical(lipgloss.Top)
 
 	if a.focus == FocusNav {
 		navStyle = navStyle.BorderForeground(lipgloss.Color("62"))
 	} else {
-		viewerStyle = viewerStyle.BorderForeground(lipgloss.Color("62"))
+		rightStyle = rightStyle.BorderForeground(lipgloss.Color("62"))
+	}
+
+	// Show editor or viewer depending on mode
+	var rightPane string
+	if a.mode == ModeEditor {
+		rightPane = a.editor.View()
+	} else {
+		rightPane = a.viewer.View()
 	}
 
 	return lipgloss.JoinHorizontal(
 		lipgloss.Top,
 		navStyle.Render(a.nav.View()),
-		viewerStyle.Render(a.viewer.View()),
+		rightStyle.Render(rightPane),
 	)
 }
 
@@ -180,8 +257,9 @@ func (a *App) updateFocusedPane(msg tea.Msg) tea.Cmd {
 
 func (a *App) updatePaneSizes() {
 	navWidth := int(float64(a.width) * navPaneRatio)
-	viewerWidth := a.width - navWidth - 1
+	rightWidth := a.width - navWidth - 1
 
 	a.nav.SetSize(navWidth, a.height)
-	a.viewer.SetSize(viewerWidth, a.height)
+	a.viewer.SetSize(rightWidth, a.height)
+	a.editor.SetSize(rightWidth, a.height)
 }
